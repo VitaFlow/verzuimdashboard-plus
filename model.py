@@ -12,9 +12,6 @@ def preprocess(df):
                     'FysiekeBelastingScore', 'WerktevredenheidScore']]
     return pd.concat([df_encoded, numerical], axis=1)
 
-def predict(model, df):
-    X = preprocess(df)
+def predict(model, X):
     probs = model.predict_proba(X)[:, 1]
-    df['Risicoscore'] = probs
-    df['Risicoklasse'] = pd.cut(probs, bins=[0, 0.33, 0.66, 1], labels=['Laag', 'Midden', 'Hoog'])
-    return df
+    return pd.Series(probs, name="Risicoscore")
