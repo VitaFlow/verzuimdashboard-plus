@@ -42,6 +42,7 @@ st.dataframe(df_pred[['Werknemer_ID', 'Afdeling', 'Risicoscore', 'AI_Aanbeveling
 
 csv_ai = df_pred[['Werknemer_ID', 'Afdeling', 'Risicoscore', 'AI_Aanbeveling']].to_csv(index=False).encode('utf-8')
 st.download_button("📥 Download AI Aanbevelingen (CSV)", data=csv_ai, file_name="ai_aanbevelingen.csv", mime="text/csv")
+
     # === AI Aanbevelingen per medewerker (rule-based) ===
     def genereer_aanbeveling(rij):
         aanbeveling = []
