@@ -8,11 +8,14 @@ from fpdf import FPDF
 st.set_page_config(page_title="Verzuimdashboard Plus", layout="wide")
 st.title("📊 Verzuimdashboard Plus")
 
-uploaded_file = st.file_uploader("📤 Upload een Excelbestand", type=["xlsx"])
+uploaded_file = st.file_uploader("📤 Upload een Excelbestand", type=["xlsx", "csv"])
 
 if uploaded_file:
     try:
-        df = pd.read_excel(uploaded_file)
+        if uploaded_file.name.endswith(".csv"):
+            df = pd.read_csv(uploaded_file)
+        else:
+            df = pd.read_excel(uploaded_file)
 
         st.subheader("📄 Ingevoerde Data")
         st.dataframe(df)
@@ -20,7 +23,7 @@ if uploaded_file:
         model = load_model("model.pkl")
         df_clean = preprocess(df)
         risicoscore = predict(model, df_clean)
-        df_pred = pd.concat([df, risicoscore.rename("Risicoscore")], axis=1)
+        df_pred = pd.concat([df.reset_index(drop=True), risicoscore.rename("Risicoscore").reset_index(drop=True)], axis=1)
 
         st.subheader("📊 Samenvatting")
         st.write(df_pred.describe())
@@ -84,4 +87,4 @@ if uploaded_file:
     except Exception as e:
         st.error(f"Fout bij verwerken van bestand: {e}")
 else:
-    st.info("📎 Upload een Excelbestand om te beginnen.")
+    st.info("📎 Upload een Excel- of CSV-bestand om te beginnen.")
