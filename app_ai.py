@@ -29,7 +29,7 @@ df_pred = pd.concat([df, risicoscore.rename("Risicoscore")], axis=1)
         # Filter op afdeling
         afdelingen = df_pred["Afdeling"].unique().tolist()
         geselecteerde_afdelingen = st.multiselect("Filter op Afdeling", options=afdelingen, default=afdelingen)
-        df_filtered = df_pred[df_pred["Afdeling"].isin(geselecteerde_afdelingen)]
+        df_filtered = df_pred[df_pred["Afdeling"].isin(geselecteerde_afdelingen)].copy()
 
         # Voeg maand toe als deze ontbreekt
         if "Maand" not in df_filtered.columns:
