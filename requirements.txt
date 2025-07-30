@@ -6,3 +6,4 @@ plotly
 openpyxl
 joblib
 fpdf==1.7.2
+kaleido==0.2.1
