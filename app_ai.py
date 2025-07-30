@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -30,9 +29,9 @@ if uploaded_file:
         geselecteerde_afdelingen = st.multiselect("Filter op Afdeling", options=afdelingen, default=afdelingen)
         df_filtered = df_pred[df_pred["Afdeling"].isin(geselecteerde_afdelingen)]
 
-        # Simuleer maandoverdracht (voor trendanalyse)
+        # Simuleer maand (voor trendlijn)
         if "Maand" not in df_filtered.columns:
-            df_filtered["Maand"] = pd.to_datetime("2023-01-01") + pd.to_timedelta((df_filtered.index % 12) * 30, unit="D")
+            df_filtered["Maand"] = pd.date_range(start="2023-01-01", periods=len(df_filtered), freq="M")
             df_filtered["Maand"] = df_filtered["Maand"].dt.to_period("M").astype(str)
 
         st.subheader("📈 Gemiddelde Risicoscore per Maand")
@@ -49,27 +48,26 @@ if uploaded_file:
         fig_bar = px.bar(afdeling_risico, x="Afdeling", y="Risicoscore", color="Afdeling")
         st.plotly_chart(fig_bar, use_container_width=True)
 
-        # Download CSV
+        # CSV export
         csv = df_filtered.to_csv(index=False).encode("utf-8")
         st.download_button("📥 Download Resultaten (CSV)", data=csv, file_name="verzuimresultaten.csv", mime="text/csv")
 
-        # Rapportage PDF
+        # PDF export
         def genereer_rapport(data):
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", size=12)
             pdf.cell(200, 10, txt="Verzuimrapportage", ln=True, align="C")
             pdf.ln(10)
-            afdelingen = data["Afdeling"].unique()
-            for afd in afdelingen:
+            for afd in data["Afdeling"].unique():
                 subset = data[data["Afdeling"] == afd]
                 pdf.set_font("Arial", "B", size=12)
                 pdf.cell(200, 10, txt=f"Afdeling: {afd}", ln=True)
                 pdf.set_font("Arial", size=11)
                 for col in ["Risicoscore", "ZiekteverzuimScore", "MentaleBelastingScore", "FysiekeBelastingScore"]:
                     if col in subset.columns:
-                        waarde = subset[col].mean()
-                        pdf.cell(200, 10, txt=f"Gemiddelde {col}: {waarde:.2f}", ln=True)
+                        gemiddelde = subset[col].mean()
+                        pdf.cell(200, 10, txt=f"Gemiddelde {col}: {gemiddelde:.2f}", ln=True)
                 pdf.ln(5)
             buffer = BytesIO()
             pdf.output(buffer)
@@ -77,8 +75,8 @@ if uploaded_file:
 
         if st.button("📄 Genereer PDF-Rapport"):
             try:
-                pdf_bytes = genereer_rapport(df_filtered)
-                st.download_button("📥 Download Rapport (PDF)", data=pdf_bytes, file_name="verzuimrapport.pdf", mime="application/pdf")
+                rapport = genereer_rapport(df_filtered)
+                st.download_button("📥 Download Rapport (PDF)", data=rapport, file_name="verzuimrapport.pdf", mime="application/pdf")
             except Exception as e:
                 st.error(f"Fout bij genereren rapport: {e}")
 
