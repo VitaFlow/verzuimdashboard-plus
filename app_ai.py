@@ -17,11 +17,10 @@ if uploaded_file:
         st.subheader("📄 Ingevoerde Data")
         st.dataframe(df)
 
- model = load_model("model.pkl")
-df_clean = preprocess(df)
-risicoscore = predict(model, df_clean)
-df_pred = pd.concat([df, risicoscore.rename("Risicoscore")], axis=1)
-
+        model = load_model("model.pkl")
+        df_clean = preprocess(df)
+        risicoscore = predict(model, df_clean)
+        df_pred = pd.concat([df, risicoscore.rename("Risicoscore")], axis=1)
 
         st.subheader("📊 Samenvatting")
         st.write(df_pred.describe())
