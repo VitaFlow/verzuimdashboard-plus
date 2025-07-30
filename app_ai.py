@@ -17,9 +17,6 @@ if uploaded_file:
             df = pd.read_excel(uploaded_file)
 
         df_pred = predict(model, df)
-
-
-    
     # === AI Aanbevelingen per medewerker (rule-based) ===
     def genereer_aanbeveling(rij):
         aanbeveling = []
@@ -44,21 +41,43 @@ if uploaded_file:
 
     csv_ai = df_pred[['Werknemer_ID', 'Afdeling', 'Risicoscore', 'AI_Aanbeveling']].to_csv(index=False).encode('utf-8')
     st.download_button("📥 Download AI Aanbevelingen (CSV)", data=csv_ai, file_name="ai_aanbevelingen.csv", mime="text/csv")
+
+
+    
+    # === AI Aanbevelingen per medewerker (rule-based) ===
+    def genereer_aanbeveling(rij):
+        aanbeveling = []
+        if rij['Risicoscore'] > 0.6:
+            aanbeveling.append("Zeer hoog verzuimrisico – plan een preventief gesprek.")
+        elif rij['Risicoscore'] > 0.4:
+            aanbeveling.append("Verhoogd risico – houd actief vinger aan de pols.")
+        if rij['MentaleBelastingScore'] > 0.7:
+            aanbeveling.append("Let op mentale belasting – overweeg coachingsgesprek.")
+        if rij['FysiekeBelastingScore'] > 0.7:
+            aanbeveling.append("Fysieke belasting is hoog – check werkplek en ergonomie.")
+        if rij['WerktevredenheidScore'] < 0.4:
+            aanbeveling.append("Lage tevredenheid – plan HR check-in.")
+        if rij['ZiekteverzuimScore'] > 0.6:
+            aanbeveling.append("Aanhoudend ziekteverzuim – monitor herstelbegeleiding.")
+        return " ".join(aanbeveling) if aanbeveling else "Geen directe actie nodig."
+
+    df_pred['AI_Aanbeveling'] = df_pred.apply(genereer_aanbeveling, axis=1)
+
+    st.subheader("🧠 AI Aanbevelingen per Werknemer")
+
+    st.download_button("📥 Download AI Aanbevelingen (CSV)", data=csv_ai, file_name="ai_aanbevelingen.csv", mime="text/csv")
 ", data=csv_ai, file_name="ai_aanbevelingen.csv", mime="text/csv")
 
         st.subheader("📊 Samenvatting in HR-inzichten")
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            gem_risico = df_pred["Risicoscore"].mean()
             st.metric("Gemiddelde Risicoscore", f"{gem_risico:.2f}")
 
         with col2:
-            hoog_risico_pct = (df_pred["Risicoscore"] > 0.5).mean() * 100
             st.metric("Hoog risico medewerkers (%)", f"{hoog_risico_pct:.1f}%")
 
         with col3:
-            hoogste_afdeling = df_pred.groupby("Afdeling")["Risicoscore"].mean().sort_values(ascending=False).idxmax()
             st.metric("Afdeling met hoogste risico", hoogste_afdeling)
 
         afdelingen = st.multiselect("Filter op Afdeling", options=df_pred['Afdeling'].unique(), default=df_pred['Afdeling'].unique())
@@ -215,9 +234,7 @@ if 'df_pred' in locals():
 
     df_pred['AI_Aanbeveling'] = df_pred.apply(genereer_aanbeveling, axis=1)
 
-    st.dataframe(df_pred[['Werknemer_ID', 'Afdeling', 'Risicoscore', 'AI_Aanbeveling']])
 
-    csv_ai = df_pred[['Werknemer_ID', 'Afdeling', 'Risicoscore', 'AI_Aanbeveling']].to_csv(index=False).encode('utf-8')
     st.download_button("📥 Download AI Aanbevelingen (CSV)", data=csv_ai, file_name="ai_aanbevelingen.csv", mime="text/csv")
 
 
@@ -241,7 +258,5 @@ def genereer_aanbeveling(rij):
 
 df_pred['AI_Aanbeveling'] = df_pred.apply(genereer_aanbeveling, axis=1)
 
-st.dataframe(df_pred[['Werknemer_ID', 'Afdeling', 'Risicoscore', 'AI_Aanbeveling']])
 
-csv_ai = df_pred[['Werknemer_ID', 'Afdeling', 'Risicoscore', 'AI_Aanbeveling']].to_csv(index=False).encode('utf-8')
 st.download_button("📥 Download AI Aanbevelingen (CSV)", data=csv_ai, file_name="ai_aanbevelingen.csv", mime="text/csv")
