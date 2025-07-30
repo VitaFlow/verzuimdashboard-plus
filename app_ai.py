@@ -17,20 +17,25 @@ if uploaded_file:
         else:
             df = pd.read_excel(uploaded_file)
 
-        st.subheader("📄 Ingevoerde Data")
-        st.dataframe(df)
-
         model = load_model("model.pkl")
         df_clean = preprocess(df)
         risicoscore = predict(model, df_clean)
         df_pred = pd.concat([df.reset_index(drop=True), risicoscore.reset_index(drop=True)], axis=1)
         df_pred['Risicoklasse'] = pd.cut(df_pred['Risicoscore'], bins=[0, 0.33, 0.66, 1], labels=['Laag', 'Midden', 'Hoog'])
 
-        st.subheader("📊 Samenvatting")
-        st.write(df_pred.describe())
+        # 🔍 HR-inzichten
+        st.subheader("📌 HR-inzichten")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Aantal medewerkers", len(df_pred))
+        col2.metric("Gemiddelde Risicoscore", f"{df_pred['Risicoscore'].mean():.2f}")
+        col3.metric("% Hoog risico", f"{(df_pred['Risicoklasse'] == 'Hoog').mean() * 100:.1f}%")
+        hoogste_afdeling = df_pred.groupby("Afdeling")["Risicoscore"].mean().idxmax()
+        col4.metric("Hoogste risico afdeling", hoogste_afdeling)
 
+        # 🔢 Filters
+        st.subheader("🎯 Filter op Afdeling")
         afdelingen = df_pred["Afdeling"].unique().tolist()
-        geselecteerde_afdelingen = st.multiselect("Filter op Afdeling", options=afdelingen, default=afdelingen)
+        geselecteerde_afdelingen = st.multiselect("Afdelingen", options=afdelingen, default=afdelingen)
         df_filtered = df_pred[df_pred["Afdeling"].isin(geselecteerde_afdelingen)].copy()
 
         if "Maand" not in df_filtered.columns:
@@ -51,35 +56,27 @@ if uploaded_file:
         fig_bar = px.bar(afdeling_risico, x="Afdeling", y="Risicoscore", color="Afdeling")
         st.plotly_chart(fig_bar, use_container_width=True)
 
+        # 💡 AI-Adviesmodule
+        st.subheader("🤖 AI Advies per Medewerker")
+
+        def genereer_advies(score):
+            if score < 0.33:
+                return "Geen direct risico"
+            elif score < 0.66:
+                return "Let op werkdruk & balans"
+            else:
+                return "Plan coachinggesprek / mentale check-in"
+
+        df_filtered["Advies"] = df_filtered["Risicoscore"].apply(genereer_advies)
+        st.dataframe(df_filtered[["Werknemer_ID", "Afdeling", "Risicoscore", "Risicoklasse", "Advies"]])
+
+        # 📥 Downloadbare adviezen
+        advies_csv = df_filtered[["Werknemer_ID", "Afdeling", "Risicoscore", "Risicoklasse", "Advies"]].to_csv(index=False).encode("utf-8")
+        st.download_button("📥 Download Adviezen (CSV)", data=advies_csv, file_name="ai_adviezen.csv", mime="text/csv")
+
+        # 📤 Download alle resultaten (optioneel)
         csv = df_filtered.to_csv(index=False).encode("utf-8")
-        st.download_button("📥 Download Resultaten (CSV)", data=csv, file_name="verzuimresultaten.csv", mime="text/csv")
-
-        def genereer_rapport(data):
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
-            pdf.cell(200, 10, txt="Verzuimrapportage", ln=True, align="C")
-            pdf.ln(10)
-            for afd in data["Afdeling"].unique():
-                subset = data[data["Afdeling"] == afd]
-                pdf.set_font("Arial", "B", size=12)
-                pdf.cell(200, 10, txt=f"Afdeling: {afd}", ln=True)
-                pdf.set_font("Arial", size=11)
-                for col in ["Risicoscore", "ZiekteverzuimScore", "MentaleBelastingScore", "FysiekeBelastingScore"]:
-                    if col in subset.columns:
-                        gemiddelde = subset[col].mean()
-                        pdf.cell(200, 10, txt=f"Gemiddelde {col}: {gemiddelde:.2f}", ln=True)
-                pdf.ln(5)
-            buffer = BytesIO()
-            pdf.output(buffer)
-            return buffer.getvalue()
-
-        if st.button("📄 Genereer PDF-Rapport"):
-            try:
-                rapport = genereer_rapport(df_filtered)
-                st.download_button("📥 Download Rapport (PDF)", data=rapport, file_name="verzuimrapport.pdf", mime="application/pdf")
-            except Exception as e:
-                st.error(f"Fout bij genereren rapport: {e}")
+        st.download_button("📥 Download Alle Resultaten (CSV)", data=csv, file_name="verzuimresultaten.csv", mime="text/csv")
 
     except Exception as e:
         st.error(f"Fout bij verwerken van bestand: {e}")
