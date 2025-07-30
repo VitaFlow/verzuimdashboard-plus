@@ -29,7 +29,7 @@ if uploaded_file:
         geselecteerde_afdelingen = st.multiselect("Filter op Afdeling", options=afdelingen, default=afdelingen)
         df_filtered = df_pred[df_pred["Afdeling"].isin(geselecteerde_afdelingen)]
 
-        # Simuleer maand (voor trendlijn)
+        # Voeg maand toe als deze ontbreekt
         if "Maand" not in df_filtered.columns:
             df_filtered["Maand"] = pd.date_range(start="2023-01-01", periods=len(df_filtered), freq="M")
             df_filtered["Maand"] = df_filtered["Maand"].dt.to_period("M").astype(str)
@@ -48,11 +48,11 @@ if uploaded_file:
         fig_bar = px.bar(afdeling_risico, x="Afdeling", y="Risicoscore", color="Afdeling")
         st.plotly_chart(fig_bar, use_container_width=True)
 
-        # CSV export
+        # Download CSV
         csv = df_filtered.to_csv(index=False).encode("utf-8")
         st.download_button("📥 Download Resultaten (CSV)", data=csv, file_name="verzuimresultaten.csv", mime="text/csv")
 
-        # PDF export
+        # PDF genereren
         def genereer_rapport(data):
             pdf = FPDF()
             pdf.add_page()
