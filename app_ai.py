@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -21,34 +22,31 @@ if uploaded_file:
         df_clean = preprocess(df)
         df_pred = predict(model, df_clean)
 
-        # Samenvatting
         st.subheader("📊 Samenvatting")
         st.write(df_pred.describe())
 
-        # Filters
+        # Filter op afdeling
         afdelingen = df_pred["Afdeling"].unique().tolist()
         geselecteerde_afdelingen = st.multiselect("Filter op Afdeling", options=afdelingen, default=afdelingen)
         df_filtered = df_pred[df_pred["Afdeling"].isin(geselecteerde_afdelingen)]
 
-        # Trendlijn
-        st.subheader("📈 Gemiddelde Risicoscore per Maand")
+        # Simuleer maandoverdracht (voor trendanalyse)
         if "Maand" not in df_filtered.columns:
             df_filtered["Maand"] = pd.to_datetime("2023-01-01") + pd.to_timedelta((df_filtered.index % 12) * 30, unit="D")
             df_filtered["Maand"] = df_filtered["Maand"].dt.to_period("M").astype(str)
 
+        st.subheader("📈 Gemiddelde Risicoscore per Maand")
         trenddata = df_filtered.groupby(["Maand", "Afdeling"])["Risicoscore"].mean().reset_index()
         fig_trend = px.line(trenddata, x="Maand", y="Risicoscore", color="Afdeling", markers=True)
         st.plotly_chart(fig_trend, use_container_width=True)
 
-        # Histogram
         st.subheader("📊 Verdeling Risicoscores")
         fig_hist = px.histogram(df_filtered, x="Risicoscore", nbins=10)
         st.plotly_chart(fig_hist, use_container_width=True)
 
-        # Bar chart per afdeling
         st.subheader("🏢 Gemiddeld Risico per Afdeling")
         afdeling_risico = df_filtered.groupby("Afdeling")["Risicoscore"].mean().reset_index()
-        fig_bar = px.bar(afdeling_risico, x="Afdeling", y="Risicoscore")
+        fig_bar = px.bar(afdeling_risico, x="Afdeling", y="Risicoscore", color="Afdeling")
         st.plotly_chart(fig_bar, use_container_width=True)
 
         # Download CSV
@@ -62,10 +60,17 @@ if uploaded_file:
             pdf.set_font("Arial", size=12)
             pdf.cell(200, 10, txt="Verzuimrapportage", ln=True, align="C")
             pdf.ln(10)
-            for col in ["Risicoscore", "ZiekteverzuimScore", "MentaleBelastingScore", "FysiekeBelastingScore"]:
-                if col in data.columns:
-                    waarde = data[col].mean()
-                    pdf.cell(200, 10, txt=f"Gemiddelde {col}: {waarde:.2f}", ln=True)
+            afdelingen = data["Afdeling"].unique()
+            for afd in afdelingen:
+                subset = data[data["Afdeling"] == afd]
+                pdf.set_font("Arial", "B", size=12)
+                pdf.cell(200, 10, txt=f"Afdeling: {afd}", ln=True)
+                pdf.set_font("Arial", size=11)
+                for col in ["Risicoscore", "ZiekteverzuimScore", "MentaleBelastingScore", "FysiekeBelastingScore"]:
+                    if col in subset.columns:
+                        waarde = subset[col].mean()
+                        pdf.cell(200, 10, txt=f"Gemiddelde {col}: {waarde:.2f}", ln=True)
+                pdf.ln(5)
             buffer = BytesIO()
             pdf.output(buffer)
             return buffer.getvalue()
