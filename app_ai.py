@@ -19,6 +19,7 @@ if uploaded_file:
         df_pred = predict(model, df)
 
 
+    
     # === AI Aanbevelingen per medewerker (rule-based) ===
     def genereer_aanbeveling(rij):
         aanbeveling = []
@@ -43,6 +44,7 @@ if uploaded_file:
 
     csv_ai = df_pred[['Werknemer_ID', 'Afdeling', 'Risicoscore', 'AI_Aanbeveling']].to_csv(index=False).encode('utf-8')
     st.download_button("📥 Download AI Aanbevelingen (CSV)", data=csv_ai, file_name="ai_aanbevelingen.csv", mime="text/csv")
+", data=csv_ai, file_name="ai_aanbevelingen.csv", mime="text/csv")
 
         st.subheader("📊 Samenvatting in HR-inzichten")
         col1, col2, col3 = st.columns(3)
