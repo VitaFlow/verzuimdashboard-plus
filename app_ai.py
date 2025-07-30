@@ -80,10 +80,12 @@ if uploaded_file:
         st.subheader("📥 Download Resultaten")
         csv = df_pred.to_csv(index=False).encode("utf-8")
 
-        # PDF Rapportage
+
+        # PDF Rapportage met grafieken
         from fpdf import FPDF
         import tempfile
         import datetime
+        import plotly.io as pio
 
         if st.button("📄 Genereer HR Rapportage (PDF)"):
             try:
@@ -91,24 +93,55 @@ if uploaded_file:
                 high_risk_pct = (df_pred["Risicoscore"] > 0.5).mean() * 100
                 top_afdeling = df_pred.groupby("Afdeling")["Risicoscore"].mean().idxmax()
 
-                pdf = FPDF()
-                pdf.add_page()
-                pdf.set_font("Arial", size=12)
+                # Maak grafieken
+                hist_fig = px.histogram(df_filtered, x="Risicoscore", nbins=20, title="Histogram Risicoscore")
+                trend_fig = None
+                if 'Maand' in df_filtered.columns:
+                    maand_risico = df_filtered.groupby(["Maand", "Afdeling"])["Risicoscore"].mean().reset_index()
+                    trend_fig = px.line(maand_risico.sort_values("Maand"), x="Maand", y="Risicoscore",
+                                        color="Afdeling", markers=True,
+                                        title="Gemiddelde Risicoscore per Maand per Afdeling")
 
-                pdf.set_title("HR Verzuimanalyse Rapport")
-                pdf.cell(200, 10, txt="HR Verzuimanalyse Rapport", ln=True)
-                pdf.cell(200, 10, txt=f"Datum: {datetime.datetime.now().strftime('%Y-%m-%d')}", ln=True)
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    hist_path = f"{tmpdir}/histogram.png"
+                    hist_fig.write_image(hist_path, format="png")
 
-                pdf.ln(10)
-                pdf.cell(200, 10, txt=f"Gemiddelde Risicoscore: {avg_score:.2f}", ln=True)
-                pdf.cell(200, 10, txt=f"% medewerkers met hoog risico: {high_risk_pct:.1f}%", ln=True)
-                pdf.cell(200, 10, txt=f"Afdeling met hoogste risico: {top_afdeling}", ln=True)
+                    trend_path = None
+                    if trend_fig:
+                        trend_path = f"{tmpdir}/trendlijn.png"
+                        trend_fig.write_image(trend_path, format="png")
 
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
-                    pdf.output(tmpfile.name)
-                    with open(tmpfile.name, "rb") as f:
-                        st.download_button("Download HR Rapportage", f.read(), file_name="hr_rapportage.pdf")
+                    pdf = FPDF()
+                    pdf.add_page()
+                    pdf.set_font("Arial", size=12)
+
+                    pdf.set_title("HR Verzuimanalyse Rapport")
+                    pdf.cell(200, 10, txt="HR Verzuimanalyse Rapport", ln=True)
+                    pdf.cell(200, 10, txt=f"Datum: {datetime.datetime.now().strftime('%Y-%m-%d')}", ln=True)
+
+                    pdf.ln(10)
+                    pdf.cell(200, 10, txt=f"Gemiddelde Risicoscore: {avg_score:.2f}", ln=True)
+                    pdf.cell(200, 10, txt=f"% medewerkers met hoog risico: {high_risk_pct:.1f}%", ln=True)
+                    pdf.cell(200, 10, txt=f"Afdeling met hoogste risico: {top_afdeling}", ln=True)
+
+                    # Voeg grafieken toe
+                    pdf.ln(10)
+                    pdf.cell(200, 10, txt="Histogram Risicoscore", ln=True)
+                    pdf.image(hist_path, x=10, w=180)
+
+                    if trend_path:
+                        pdf.add_page()
+                        pdf.cell(200, 10, txt="Trendlijn Risicoscore per Maand per Afdeling", ln=True)
+                        pdf.image(trend_path, x=10, w=180)
+
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
+                        pdf.output(tmpfile.name)
+                        with open(tmpfile.name, "rb") as f:
+                            st.download_button("Download HR Rapportage", f.read(), file_name="hr_rapportage.pdf")
+
             except Exception as e:
+                st.error(f"Fout bij genereren rapport: {e}")
+
                 st.error(f"Fout bij genereren rapport: {e}")
 
         st.download_button("Download CSV met Risicoscores", csv, "verzuimresultaten.csv", "text/csv")
