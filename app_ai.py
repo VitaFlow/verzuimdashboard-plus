@@ -50,6 +50,16 @@ if uploaded_file:
         fig2 = px.bar(avg_risico, x="Afdeling", y="Risicoscore", title="Gemiddeld Risico per Afdeling")
         st.plotly_chart(fig2, use_container_width=True)
 
+        st.subheader("📉 Trendlijn: Gemiddelde Risicoscore per Maand")
+        if 'Maand' in df_filtered.columns:
+            maand_risico = df_filtered.groupby("Maand")["Risicoscore"].mean().reset_index()
+            fig3 = px.line(maand_risico.sort_values("Maand"), x="Maand", y="Risicoscore",
+                           title="Gemiddelde Risicoscore per Maand", markers=True)
+            fig3.update_layout(xaxis_title="Maand", yaxis_title="Gem. Risicoscore", yaxis_range=[0, 1])
+            st.plotly_chart(fig3, use_container_width=True)
+        else:
+            st.info("📅 Geen 'Maand'-kolom gevonden in dataset. Upload een bestand met een 'Maand'-kolom (bijv. 2024-05).")
+
         st.subheader("📥 Download Resultaten")
         csv = df_pred.to_csv(index=False).encode("utf-8")
         st.download_button("Download CSV met Risicoscores", csv, "verzuimresultaten.csv", "text/csv")
