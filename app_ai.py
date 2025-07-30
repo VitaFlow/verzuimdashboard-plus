@@ -164,7 +164,35 @@ else:
     st.info("Upload een bestand om te beginnen.")
 
 
+
 # === AI Aanbevelingen ===
+if 'df_pred' in locals():
+    st.subheader("🧠 AI Aanbevelingen per Werknemer")
+
+    def genereer_aanbeveling(rij):
+        aanbeveling = []
+        if rij['Risicoscore'] > 0.6:
+            aanbeveling.append("Zeer hoog verzuimrisico – plan een preventief gesprek.")
+        elif rij['Risicoscore'] > 0.4:
+            aanbeveling.append("Verhoogd risico – houd actief vinger aan de pols.")
+        if rij['MentaleBelastingScore'] > 0.7:
+            aanbeveling.append("Let op mentale belasting – overweeg coachingsgesprek.")
+        if rij['FysiekeBelastingScore'] > 0.7:
+            aanbeveling.append("Fysieke belasting is hoog – check werkplek en ergonomie.")
+        if rij['WerktevredenheidScore'] < 0.4:
+            aanbeveling.append("Lage tevredenheid – plan HR check-in.")
+        if rij['ZiekteverzuimScore'] > 0.6:
+            aanbeveling.append("Aanhoudend ziekteverzuim – monitor herstelbegeleiding.")
+        return " ".join(aanbeveling) if aanbeveling else "Geen directe actie nodig."
+
+    df_pred['AI_Aanbeveling'] = df_pred.apply(genereer_aanbeveling, axis=1)
+
+    st.dataframe(df_pred[['Werknemer_ID', 'Afdeling', 'Risicoscore', 'AI_Aanbeveling']])
+
+    csv_ai = df_pred[['Werknemer_ID', 'Afdeling', 'Risicoscore', 'AI_Aanbeveling']].to_csv(index=False).encode('utf-8')
+    st.download_button("📥 Download AI Aanbevelingen (CSV)", data=csv_ai, file_name="ai_aanbevelingen.csv", mime="text/csv")
+
+
 st.subheader("🧠 AI Aanbevelingen per Werknemer")
 
 def genereer_aanbeveling(rij):
