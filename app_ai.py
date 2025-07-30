@@ -81,26 +81,37 @@ if uploaded_file:
         csv = df_pred.to_csv(index=False).encode("utf-8")
 
 
-        # PDF Rapportage met grafieken
+
+        # PDF Rapportage met afdelingsfilter + gekleurde grafieken
         from fpdf import FPDF
         import tempfile
         import datetime
         import plotly.io as pio
 
-        if st.button("📄 Genereer HR Rapportage (PDF)"):
+        st.subheader("📄 HR Rapportage Export")
+        afdelingen_pdf = df_filtered['Afdeling'].unique().tolist()
+        selected_afdelingen_pdf = st.multiselect("Selecteer afdelingen voor rapportage", options=afdelingen_pdf, default=afdelingen_pdf)
+
+        if st.button("Genereer HR Rapportage (PDF)"):
             try:
-                avg_score = df_pred["Risicoscore"].mean()
-                high_risk_pct = (df_pred["Risicoscore"] > 0.5).mean() * 100
-                top_afdeling = df_pred.groupby("Afdeling")["Risicoscore"].mean().idxmax()
+                report_df = df_filtered[df_filtered["Afdeling"].isin(selected_afdelingen_pdf)]
+                avg_score = report_df["Risicoscore"].mean()
+                high_risk_pct = (report_df["Risicoscore"] > 0.5).mean() * 100
+                top_afdeling = report_df.groupby("Afdeling")["Risicoscore"].mean().idxmax()
 
                 # Maak grafieken
-                hist_fig = px.histogram(df_filtered, x="Risicoscore", nbins=20, title="Histogram Risicoscore")
+                hist_fig = px.histogram(report_df, x="Risicoscore", nbins=20, title="Histogram Risicoscore")
+
                 trend_fig = None
-                if 'Maand' in df_filtered.columns:
-                    maand_risico = df_filtered.groupby(["Maand", "Afdeling"])["Risicoscore"].mean().reset_index()
-                    trend_fig = px.line(maand_risico.sort_values("Maand"), x="Maand", y="Risicoscore",
-                                        color="Afdeling", markers=True,
-                                        title="Gemiddelde Risicoscore per Maand per Afdeling")
+                if 'Maand' in report_df.columns:
+                    maand_risico = report_df.groupby(["Maand", "Afdeling"])["Risicoscore"].mean().reset_index()
+                    trend_fig = px.line(
+                        maand_risico.sort_values("Maand"),
+                        x="Maand", y="Risicoscore",
+                        color="Afdeling", markers=True,
+                        title="Gemiddelde Risicoscore per Maand per Afdeling",
+                        color_discrete_sequence=px.colors.qualitative.Set1
+                    )
 
                 with tempfile.TemporaryDirectory() as tmpdir:
                     hist_path = f"{tmpdir}/histogram.png"
@@ -140,6 +151,8 @@ if uploaded_file:
                             st.download_button("Download HR Rapportage", f.read(), file_name="hr_rapportage.pdf")
 
             except Exception as e:
+                st.error(f"Fout bij genereren rapport: {e}")
+
                 st.error(f"Fout bij genereren rapport: {e}")
 
                 st.error(f"Fout bij genereren rapport: {e}")
