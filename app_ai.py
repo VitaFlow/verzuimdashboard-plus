@@ -96,7 +96,7 @@ if uploaded_file:
                 pdf.set_font("Arial", size=12)
 
                 pdf.set_title("HR Verzuimanalyse Rapport")
-                pdf.cell(200, 10, txt="📄 HR Verzuimanalyse Rapport", ln=True)
+                pdf.cell(200, 10, txt="HR Verzuimanalyse Rapport", ln=True)
                 pdf.cell(200, 10, txt=f"Datum: {datetime.datetime.now().strftime('%Y-%m-%d')}", ln=True)
 
                 pdf.ln(10)
@@ -107,7 +107,7 @@ if uploaded_file:
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
                     pdf.output(tmpfile.name)
                     with open(tmpfile.name, "rb") as f:
-                        st.download_button("📥 Download HR Rapportage", f.read(), file_name="hr_rapportage.pdf")
+                        st.download_button("Download HR Rapportage", f.read(), file_name="hr_rapportage.pdf")
             except Exception as e:
                 st.error(f"Fout bij genereren rapport: {e}")
 
