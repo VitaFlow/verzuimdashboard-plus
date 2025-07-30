@@ -18,8 +18,20 @@ if uploaded_file:
 
         df_pred = predict(model, df)
 
-        st.subheader("📊 Samenvatting Data")
-        st.write(df_pred.describe())
+        st.subheader("📊 Samenvatting in HR-inzichten")
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            gem_risico = df_pred["Risicoscore"].mean()
+            st.metric("Gemiddelde Risicoscore", f"{gem_risico:.2f}")
+
+        with col2:
+            hoog_risico_pct = (df_pred["Risicoscore"] > 0.5).mean() * 100
+            st.metric("Hoog risico medewerkers (%)", f"{hoog_risico_pct:.1f}%")
+
+        with col3:
+            hoogste_afdeling = df_pred.groupby("Afdeling")["Risicoscore"].mean().sort_values(ascending=False).idxmax()
+            st.metric("Afdeling met hoogste risico", hoogste_afdeling)
 
         afdelingen = st.multiselect("Filter op Afdeling", options=df_pred['Afdeling'].unique(), default=df_pred['Afdeling'].unique())
         risico_filter = st.multiselect("Filter op Risicoklasse", options=['Laag', 'Midden', 'Hoog'], default=['Laag', 'Midden', 'Hoog'])
