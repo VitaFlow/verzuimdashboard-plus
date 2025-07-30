@@ -79,6 +79,38 @@ if uploaded_file:
 
         st.subheader("📥 Download Resultaten")
         csv = df_pred.to_csv(index=False).encode("utf-8")
+
+        # PDF Rapportage
+        from fpdf import FPDF
+        import tempfile
+        import datetime
+
+        if st.button("📄 Genereer HR Rapportage (PDF)"):
+            try:
+                avg_score = df_pred["Risicoscore"].mean()
+                high_risk_pct = (df_pred["Risicoscore"] > 0.5).mean() * 100
+                top_afdeling = df_pred.groupby("Afdeling")["Risicoscore"].mean().idxmax()
+
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", size=12)
+
+                pdf.set_title("HR Verzuimanalyse Rapport")
+                pdf.cell(200, 10, txt="📄 HR Verzuimanalyse Rapport", ln=True)
+                pdf.cell(200, 10, txt=f"Datum: {datetime.datetime.now().strftime('%Y-%m-%d')}", ln=True)
+
+                pdf.ln(10)
+                pdf.cell(200, 10, txt=f"Gemiddelde Risicoscore: {avg_score:.2f}", ln=True)
+                pdf.cell(200, 10, txt=f"% medewerkers met hoog risico: {high_risk_pct:.1f}%", ln=True)
+                pdf.cell(200, 10, txt=f"Afdeling met hoogste risico: {top_afdeling}", ln=True)
+
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
+                    pdf.output(tmpfile.name)
+                    with open(tmpfile.name, "rb") as f:
+                        st.download_button("📥 Download HR Rapportage", f.read(), file_name="hr_rapportage.pdf")
+            except Exception as e:
+                st.error(f"Fout bij genereren rapport: {e}")
+
         st.download_button("Download CSV met Risicoscores", csv, "verzuimresultaten.csv", "text/csv")
     except Exception as e:
         st.error(f"Fout bij verwerken bestand: {e}")
